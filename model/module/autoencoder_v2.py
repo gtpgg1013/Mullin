@@ -386,7 +386,7 @@ def autoencoder_one_layer(X, n_epochs=10, learning_rate=0.1, batch_size=10000, l
     inputs = tf.placeholder(tf.float32, shape=[None, time_step, input_dim])
 
     hidden1 = dense_layer(inputs, n_hidden1)
-    coding_units = hidden2
+    coding_units = hidden1
 
     outputs = dense_layer(hidden1, n_outputs, activation=None)
 

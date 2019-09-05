@@ -99,9 +99,9 @@ def save_df_withNA(dataset, df, PREPROCESS_DIR):
 
 preprocess('train')
 
-# preprocess('test1')
+preprocess('test1')
 
-# preprocess('test2')
+preprocess('test2')
 
 
 

@@ -243,3 +243,173 @@ def autoencoder(X, n_epochs=10, learning_rate=0.1, batch_size=10000, l2_reg=0.00
         outputs = sess.run(outputs, feed_dict={inputs:X})
         # 학습 끝나면 레이어 중앙의 인코딩 유닛과 디코딩된 아웃풋 리턴
         return coding_units, outputs
+
+    # X shape: (40000, 28, features)
+    def autoencoder(X, n_epochs=10, learning_rate=0.1, batch_size=10000, l2_reg=0.0001, n_hidden1=64, n_hidden2=48,
+                    n_hidden3=32):
+        shape0 = X.shape[0]
+        time_step = X.shape[1]
+        input_dim = X.shape[2]
+
+        n_hidden4 = n_hidden2
+        n_hidden5 = n_hidden1
+        n_outputs = input_dim
+
+        if batch_size > shape0:
+            print(f'batch_size 가 너무 큽니다. -> {shape0} 으로 변경')
+            batch_size = shape0
+        n_batches = shape0 // batch_size
+
+        he_init = tf.keras.initializers.he_normal()  # He 초기화
+        l2_regularizer = tf.contrib.layers.l2_regularizer(scale=l2_reg)  # L2 규제
+
+        dense_layer = partial(tf.layers.dense,
+                              activation=tf.nn.relu,
+                              kernel_initializer=he_init,
+                              kernel_regularizer=l2_regularizer)
+
+        # Stacked Automater 구성
+        inputs = tf.placeholder(tf.float32, shape=[None, time_step, input_dim])
+
+        hidden1 = dense_layer(inputs, n_hidden1)
+        hidden2 = dense_layer(hidden1, n_hidden2)
+        hidden3 = dense_layer(hidden2, n_hidden3)
+        hidden4 = dense_layer(hidden3, n_hidden4)
+        hidden5 = dense_layer(hidden4, n_hidden5)
+        coding_units = hidden3
+
+        outputs = dense_layer(hidden5, n_outputs, activation=None)
+
+        # loss
+        reconstruction_loss = tf.reduce_mean(tf.square(outputs - inputs))  # mse
+        reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+        loss = tf.add_n([reconstruction_loss] + reg_losses)
+
+        # optimizer
+        train_op = tf.train.AdamOptimizer(learning_rate).minimize(loss)
+
+        print(':::::::: Autoencoding training start')
+        if type(X) is not np.ndarray:
+            X = np.asarray(X)
+        with tf.Session() as sess:
+            sess.run(tf.global_variables_initializer())
+            for epoch in range(n_epochs):
+                for _ in range(n_batches):
+                    batch_x = next(shuffle_batch(X, shape0, n_batches))  # seed: 현재 시간+epoch
+                    _, _loss = sess.run([train_op, reconstruction_loss], feed_dict={inputs: batch_x})
+                print(f'epoch: {epoch + 1}/{n_epochs}, Train MSE: {_loss:.10f}')
+            print()
+            coding_units = sess.run(coding_units, feed_dict={inputs: X})
+            outputs = sess.run(outputs, feed_dict={inputs: X})
+            # 학습 끝나면 레이어 중앙의 인코딩 유닛과 디코딩된 아웃풋 리턴
+            return coding_units, outputs
+
+
+# X shape: (40000, 28, features)
+def autoencoder_two_layer(X, n_epochs=10, learning_rate=0.1, batch_size=10000, l2_reg=0.0001, n_hidden1=64, n_hidden2=32):
+    shape0 = X.shape[0]
+    time_step = X.shape[1]
+    input_dim = X.shape[2]
+
+    n_hidden3 = n_hidden1
+    n_outputs = input_dim
+
+    if batch_size > shape0:
+        print(f'batch_size 가 너무 큽니다. -> {shape0} 으로 변경')
+        batch_size = shape0
+    n_batches = shape0 // batch_size
+
+    he_init = tf.keras.initializers.he_normal()  # He 초기화
+    l2_regularizer = tf.contrib.layers.l2_regularizer(scale=l2_reg)  # L2 규제
+
+    dense_layer = partial(tf.layers.dense,
+                          activation=tf.nn.relu,
+                          kernel_initializer=he_init,
+                          kernel_regularizer=l2_regularizer)
+
+    # Stacked Automater 구성
+    inputs = tf.placeholder(tf.float32, shape=[None, time_step, input_dim])
+
+    hidden1 = dense_layer(inputs, n_hidden1)
+    hidden2 = dense_layer(hidden1, n_hidden2)
+    hidden3 = dense_layer(hidden2, n_hidden3)
+    coding_units = hidden2
+
+    outputs = dense_layer(hidden3, n_outputs, activation=None)
+
+    # loss
+    reconstruction_loss = tf.reduce_mean(tf.square(outputs - inputs))  # mse
+    reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+    loss = tf.add_n([reconstruction_loss] + reg_losses)
+
+    # optimizer
+    train_op = tf.train.AdamOptimizer(learning_rate).minimize(loss)
+
+    print(':::::::: Autoencoding training start')
+    if type(X) is not np.ndarray:
+        X = np.asarray(X)
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        for epoch in range(n_epochs):
+            for _ in range(n_batches):
+                batch_x = next(shuffle_batch(X, shape0, n_batches))  # seed: 현재 시간+epoch
+                _, _loss = sess.run([train_op, reconstruction_loss], feed_dict={inputs: batch_x})
+            print(f'epoch: {epoch + 1}/{n_epochs}, Train MSE: {_loss:.10f}')
+        print()
+        coding_units = sess.run(coding_units, feed_dict={inputs: X})
+        outputs = sess.run(outputs, feed_dict={inputs: X})
+        # 학습 끝나면 레이어 중앙의 인코딩 유닛과 디코딩된 아웃풋 리턴
+        return coding_units, outputs
+
+# X shape: (40000, 28, features)
+def autoencoder_one_layer(X, n_epochs=10, learning_rate=0.1, batch_size=10000, l2_reg=0.0001, n_hidden1=64):
+    shape0 = X.shape[0]
+    time_step = X.shape[1]
+    input_dim = X.shape[2]
+
+    n_outputs = input_dim
+
+    if batch_size > shape0:
+        print(f'batch_size 가 너무 큽니다. -> {shape0} 으로 변경')
+        batch_size = shape0
+    n_batches = shape0 // batch_size
+
+    he_init = tf.keras.initializers.he_normal()  # He 초기화
+    l2_regularizer = tf.contrib.layers.l2_regularizer(scale=l2_reg)  # L2 규제
+
+    dense_layer = partial(tf.layers.dense,
+                          activation=tf.nn.relu,
+                          kernel_initializer=he_init,
+                          kernel_regularizer=l2_regularizer)
+
+    # Stacked Automater 구성
+    inputs = tf.placeholder(tf.float32, shape=[None, time_step, input_dim])
+
+    hidden1 = dense_layer(inputs, n_hidden1)
+    coding_units = hidden2
+
+    outputs = dense_layer(hidden1, n_outputs, activation=None)
+
+    # loss
+    reconstruction_loss = tf.reduce_mean(tf.square(outputs - inputs))  # mse
+    reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+    loss = tf.add_n([reconstruction_loss] + reg_losses)
+
+    # optimizer
+    train_op = tf.train.AdamOptimizer(learning_rate).minimize(loss)
+
+    print(':::::::: Autoencoding training start')
+    if type(X) is not np.ndarray:
+        X = np.asarray(X)
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        for epoch in range(n_epochs):
+            for _ in range(n_batches):
+                batch_x = next(shuffle_batch(X, shape0, n_batches))  # seed: 현재 시간+epoch
+                _, _loss = sess.run([train_op, reconstruction_loss], feed_dict={inputs: batch_x})
+            print(f'epoch: {epoch + 1}/{n_epochs}, Train MSE: {_loss:.10f}')
+        print()
+        coding_units = sess.run(coding_units, feed_dict={inputs: X})
+        outputs = sess.run(outputs, feed_dict={inputs: X})
+        # 학습 끝나면 레이어 중앙의 인코딩 유닛과 디코딩된 아웃풋 리턴
+        return coding_units, outputs
